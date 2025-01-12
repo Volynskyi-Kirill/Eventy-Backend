@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Visibility {
+  public
+  private
+}
+
+model User {
+  id                 Int            @id @default(autoincrement())
+  userName           String         @map("user_name")
+  userSurname        String         @map("user_surname")
+  phoneNumber        String         @map("phone_number")
+  email              String
+  pwdHash            Bytes          @map("pwd_hash")
+  events             Event[]
+  locations          Location[]
+  soldTickets        SoldTicket[]
+  ownedSubscriptions Subscription[] @relation("OwnerRelation")
+  otherSubscriptions Subscription[] @relation("OtherRelation")
+
+  @@map("users")
+}
+
+model Subscription {
+  owner Int
+  other Int
+
+  userOwner User @relation("OwnerRelation", fields: [owner], references: [id])
+  userOther User @relation("OtherRelation", fields: [other], references: [id])
+
+  @@id([owner, other])
+  @@map("subscriptions")
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  ownerId     Int       @map("owner_id")
+  title       String
+  subtitle    String
+  description String
+  time        DateTime
+  duration    Int?
+  locationId  Int?      @map("location_id")
+  previewImg  String?   @map("preview_img")
+  bannerImg   String?   @map("banner_img")
+  eventImg    String?   @map("event_img")
+  owner       User      @relation(fields: [ownerId], references: [id])
+  location    Location? @relation(fields: [locationId], references: [id])
+  tickets     Ticket[]
+
+  @@map("events")
+}
+
+model Location {
+  id         Int        @id @default(autoincrement())
+  holderId   Int        @map("holder_id")
+  picture    String?
+  coords     String?
+  layout     Bytes?
+  visibility Visibility
+  holder     User       @relation(fields: [holderId], references: [id])
+  events     Event[]
+
+  @@map("locations")
+}
+
+model Ticket {
+  id         Int          @id @default(autoincrement())
+  eventId    Int          @map("event_id")
+  placeId    Int          @map("place_id")
+  price      Int
+  event      Event        @relation(fields: [eventId], references: [id])
+  soldTicket SoldTicket[]
+
+  @@map("tickets")
+}
+
+model SoldTicket {
+  ticketId Int    @map("ticket_id")
+  buyerId  Int    @map("buyer_id")
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+  buyer    User   @relation(fields: [buyerId], references: [id])
+
+  @@id([ticketId, buyerId])
+  @@map("sold_tickets")
+}
