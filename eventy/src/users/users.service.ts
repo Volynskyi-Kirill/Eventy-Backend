@@ -1,13 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-
-export interface CreateUser {
-  userName: string;
-  userSurname: string;
-  phoneNumber: string;
-  email: string;
-  pwdHash: Buffer;
-}
 
 @Injectable()
 export class UsersService {
@@ -27,7 +20,7 @@ export class UsersService {
     phoneNumber,
     email,
     pwdHash,
-  }: CreateUser) {
+  }: Prisma.UserCreateInput) {
     return this.prismaService.user.create({
       data: {
         userName,

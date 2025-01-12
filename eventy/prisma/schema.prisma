@@ -18,7 +18,7 @@ model User {
   userSurname        String         @map("user_surname")
   phoneNumber        String         @map("phone_number")
   email              String         @unique
-  pwdHash            Bytes          @map("pwd_hash")
+  pwdHash            String         @map("pwd_hash")
   events             Event[]
   locations          Location[]
   soldTickets        SoldTicket[]

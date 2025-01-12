@@ -21,6 +21,7 @@ export class AuthService {
     const { userName, userSurname, phoneNumber, email, password } = registerDto;
 
     const existingUser = await this.usersService.findByEmail(email);
+
     if (existingUser) {
       throw new UnauthorizedException('User already exists');
     }
@@ -33,7 +34,7 @@ export class AuthService {
       userSurname,
       phoneNumber,
       email,
-      pwdHash: Buffer.from(hashedPassword),
+      pwdHash: hashedPassword,
     });
 
     return this.generateToken(newUser.id, newUser.email);
@@ -43,14 +44,13 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.pwdHash.toString(),
-    );
+    const isPasswordValid = await bcrypt.compare(password, user.pwdHash);
+
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
