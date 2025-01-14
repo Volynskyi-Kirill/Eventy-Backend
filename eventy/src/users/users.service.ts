@@ -43,4 +43,11 @@ export class UsersService {
       },
     });
   }
+
+  async update(id: number, data: Prisma.UserUpdateInput) {
+    return this.prismaService.user.update({
+      where: { id },
+      data,
+    });
+  }
 }

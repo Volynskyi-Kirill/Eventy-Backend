@@ -82,6 +82,12 @@ export class AuthService {
       return this.googleRegister(user);
     }
 
+    if (userExists && !userExists.avatarUrl) {
+      await this.usersService.update(userExists.id, {
+        avatarUrl: user.avatarUrl,
+      });
+    }
+
     return this.generateToken(userExists.id, userExists.email);
   }
 
