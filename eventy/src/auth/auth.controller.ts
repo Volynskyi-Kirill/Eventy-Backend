@@ -33,16 +33,17 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Public()
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async auth() {}
 
+  @Public()
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
   async googleAuthCallback(@Req() req: Request) {
-    const token = await this.authService.googleSignIn(req.user);
-
+    const token = await this.authService.googleSignIn(req.user as any);
     return token;
   }
 }

@@ -33,6 +33,9 @@ export class UsersService {
     phoneNumber,
     email,
     pwdHash,
+    provider,
+    providerId,
+    avatarUrl,
   }: Prisma.UserCreateInput) {
     return this.prismaService.user.create({
       data: {
@@ -41,6 +44,9 @@ export class UsersService {
         phoneNumber,
         email,
         pwdHash,
+        provider,
+        providerId,
+        avatarUrl,
       },
     });
   }
