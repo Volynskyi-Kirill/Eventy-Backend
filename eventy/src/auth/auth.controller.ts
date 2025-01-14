@@ -6,18 +6,26 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleOauthGuard } from './guards/google-oauth.guard';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly FRONTEND_URL;
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {
+    this.FRONTEND_URL = this.configService.get<string>('FRONTEND_URL');
+  }
 
   @Public()
   @HttpCode(HttpStatus.OK)
@@ -42,8 +50,8 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
-  async googleAuthCallback(@Req() req: Request) {
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
     const token = await this.authService.googleSignIn(req.user as any);
-    return token;
+    res.redirect(`${this.FRONTEND_URL}/auth?token=${token.access_token}`);
   }
 }
