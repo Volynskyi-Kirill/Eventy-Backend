@@ -12,6 +12,7 @@ enum Visibility {
   private
 }
 
+//TODO add avatar_path, pwdHash can be null
 model User {
   id                 Int            @id @default(autoincrement())
   userName           String         @map("user_name")
