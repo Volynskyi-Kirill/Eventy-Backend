@@ -1,9 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from 'src/users/users.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { UsersService } from 'src/users/users.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { GoogleUser } from './strategys/google.strategy';
 
 export interface JwtPayload {
   sub: number;
@@ -49,6 +54,12 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
+    if (!user.pwdHash) {
+      throw new UnauthorizedException(
+        'Password is not set. Please use Google authentication.',
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.pwdHash);
 
     if (!isPasswordValid) {
@@ -56,6 +67,37 @@ export class AuthService {
     }
 
     return this.generateToken(user.id, user.email);
+  }
+
+  async googleSignIn(user: GoogleUser) {
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    const { email } = user;
+
+    const userExists = await this.usersService.findByEmail(email);
+
+    if (!userExists) {
+      return this.googleRegister(user);
+    }
+
+    if (userExists && !userExists.avatarUrl) {
+      await this.usersService.update(userExists.id, {
+        avatarUrl: user.avatarUrl,
+      });
+    }
+
+    return this.generateToken(userExists.id, userExists.email);
+  }
+
+  async googleRegister(user: GoogleUser) {
+    try {
+      const newUser = await this.usersService.create(user);
+      return this.generateToken(newUser.id, newUser.email);
+    } catch {
+      throw new InternalServerErrorException();
+    }
   }
 
   private generateToken(userId: number, email: string) {

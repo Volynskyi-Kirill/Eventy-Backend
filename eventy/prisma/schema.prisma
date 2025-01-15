@@ -15,10 +15,13 @@ enum Visibility {
 model User {
   id                 Int            @id @default(autoincrement())
   userName           String         @map("user_name")
-  userSurname        String         @map("user_surname")
-  phoneNumber        String         @map("phone_number")
+  userSurname        String?        @map("user_surname")
+  phoneNumber        String?         @map("phone_number")
   email              String         @unique
-  pwdHash            String         @map("pwd_hash")
+  pwdHash            String?        @map("pwd_hash")
+  avatarUrl          String?        @map("avatar_url")
+  provider           String?
+  providerId         String?        @map("provider_id")
   events             Event[]
   locations          Location[]
   soldTickets        SoldTicket[]

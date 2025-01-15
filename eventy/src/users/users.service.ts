@@ -6,16 +6,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UsersService {
   constructor(private prismaService: PrismaService) {}
 
-  findById(id: number) {
+  async findById(id: number) {
     return this.prismaService.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        userName: true,
-        userSurname: true,
-        phoneNumber: true,
-        email: true,
-      },
     });
   }
 
@@ -33,6 +26,9 @@ export class UsersService {
     phoneNumber,
     email,
     pwdHash,
+    provider,
+    providerId,
+    avatarUrl,
   }: Prisma.UserCreateInput) {
     return this.prismaService.user.create({
       data: {
@@ -41,7 +37,17 @@ export class UsersService {
         phoneNumber,
         email,
         pwdHash,
+        provider,
+        providerId,
+        avatarUrl,
       },
+    });
+  }
+
+  async update(id: number, data: Prisma.UserUpdateInput) {
+    return this.prismaService.user.update({
+      where: { id },
+      data,
     });
   }
 }
