@@ -85,6 +85,8 @@ export class AuthService {
     if (userExists && !userExists.avatarUrl) {
       await this.usersService.update(userExists.id, {
         avatarUrl: user.avatarUrl,
+        provider: user.provider,
+        providerId: user.providerId,
       });
     }
 
