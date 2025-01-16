@@ -25,7 +25,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const { pwdHash, ...user } = userRecord;
+    const isHavePassword = !!pwdHash;
 
-    return user;
+    return { ...user, isHavePassword };
   }
 }

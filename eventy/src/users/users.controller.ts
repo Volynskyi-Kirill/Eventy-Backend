@@ -8,7 +8,9 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  getCurrentUser(@GetUser() user: User) {
+  getCurrentUser(
+    @GetUser() user: Omit<User, 'pwdHash'> & { isHavePassword: boolean },
+  ) {
     return user;
   }
 }
