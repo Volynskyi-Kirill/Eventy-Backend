@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { SALT_ROUNDS, ERROR_MESSAGES } from 'src/shared/constants';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { ERROR_MESSAGES, SALT_ROUNDS } from 'src/shared/constants';
 
 @Injectable()
 export class UsersService {
@@ -49,31 +49,25 @@ export class UsersService {
   async update(
     id: number,
     data: Prisma.UserUpdateInput & {
-      oldPassword?: string;
+      password?: string;
       newPassword?: string;
     },
   ) {
-    const isPasswordUpdate = data.oldPassword && data.newPassword;
+    const { password, newPassword, ...updateData } = data;
 
-    if (isPasswordUpdate) {
-      data.pwdHash = await this.updatePassword(
-        id,
-        data.oldPassword as string,
-        data.newPassword as string,
-      );
-      delete data.oldPassword;
-      delete data.newPassword;
+    if (password && newPassword) {
+      await this.updatePassword(id, password, newPassword);
     }
 
     return this.prismaService.user.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 
   private async updatePassword(
     id: number,
-    oldPassword: string,
+    password: string,
     newPassword: string,
   ) {
     const user = await this.prismaService.user.findUnique({
@@ -84,7 +78,7 @@ export class UsersService {
       throw new Error(ERROR_MESSAGES.USER_NOT_FOUND_OR_PASSWORD_NOT_SET);
     }
 
-    const isPasswordValid = await bcrypt.compare(oldPassword, user.pwdHash);
+    const isPasswordValid = await bcrypt.compare(password, user.pwdHash);
 
     if (!isPasswordValid) {
       throw new Error(ERROR_MESSAGES.INVALID_OLD_PASSWORD);
@@ -92,6 +86,9 @@ export class UsersService {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-    return hashedNewPassword;
+    await this.prismaService.user.update({
+      where: { id },
+      data: { pwdHash: hashedNewPassword },
+    });
   }
 }

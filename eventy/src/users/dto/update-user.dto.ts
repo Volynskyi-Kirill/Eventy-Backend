@@ -23,7 +23,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  oldPassword?: string;
+  password?: string;
 
   @IsOptional()
   @IsString()

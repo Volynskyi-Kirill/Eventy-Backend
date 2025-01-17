@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from './shared/global-exception.filter';
 
 const CorsConfig = {
   origin: '*',
@@ -16,6 +17,7 @@ async function bootstrap() {
   const port = configService.get('APPLICATION_PORT');
 
   app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.enableCors(CorsConfig);
 
   await app.listen(port);
