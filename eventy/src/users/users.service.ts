@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
+import { SALT_ROUNDS } from 'src/shared/constants';
 
 @Injectable()
 export class UsersService {
@@ -44,10 +46,52 @@ export class UsersService {
     });
   }
 
-  async update(id: number, data: Prisma.UserUpdateInput) {
+  async update(
+    id: number,
+    data: Prisma.UserUpdateInput & {
+      oldPassword?: string;
+      newPassword?: string;
+    },
+  ) {
+    const isPasswordUpdate = data.oldPassword && data.newPassword;
+
+    if (isPasswordUpdate) {
+      data.pwdHash = await this.updatePassword(
+        id,
+        data.oldPassword as string,
+        data.newPassword as string,
+      );
+      delete data.oldPassword;
+      delete data.newPassword;
+    }
+
     return this.prismaService.user.update({
       where: { id },
       data,
     });
+  }
+
+  private async updatePassword(
+    id: number,
+    oldPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+    });
+
+    if (!user || !user.pwdHash) {
+      throw new Error('User not found or password not set');
+    }
+
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.pwdHash);
+
+    if (!isPasswordValid) {
+      throw new Error('Invalid old password');
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    return hashedNewPassword;
   }
 }

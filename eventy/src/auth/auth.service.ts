@@ -9,6 +9,7 @@ import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleUser } from './strategys/google.strategy';
+import { SALT_ROUNDS } from 'src/shared/constants';
 
 export interface JwtPayload {
   sub: number;
@@ -31,8 +32,7 @@ export class AuthService {
       throw new UnauthorizedException('User already exists');
     }
 
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     const newUser = await this.usersService.create({
       userName,
