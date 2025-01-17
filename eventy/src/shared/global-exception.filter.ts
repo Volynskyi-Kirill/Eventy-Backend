@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ERROR_MESSAGES } from './constants';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -21,7 +22,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : 'unknown';
         return response.status(HttpStatus.CONFLICT).json({
           statusCode: HttpStatus.CONFLICT,
-          message: `Unique constraint failed on the fields: (${fields})`,
+          message: `${ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED} (${fields})`,
           error: 'Conflict',
         });
       }
@@ -45,7 +46,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal server error',
+      message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
       timestamp: new Date().toISOString(),
       path: request.url,
     });

@@ -7,4 +7,6 @@ export const ERROR_MESSAGES = {
   USER_ALREADY_EXISTS: 'User already exists',
   PASSWORD_NOT_SET: 'Password is not set. Please use Google authentication.',
   INVALID_CREDENTIALS: 'Invalid credentials',
+  UNIQUE_CONSTRAINT_FAILED: 'Unique constraint failed on the fields',
+  INTERNAL_SERVER_ERROR: 'Internal server error',
 };
