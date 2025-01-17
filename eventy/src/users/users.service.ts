@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { SALT_ROUNDS } from 'src/shared/constants';
+import { SALT_ROUNDS, ERROR_MESSAGES } from 'src/shared/constants';
 
 @Injectable()
 export class UsersService {
@@ -81,13 +81,13 @@ export class UsersService {
     });
 
     if (!user || !user.pwdHash) {
-      throw new Error('User not found or password not set');
+      throw new Error(ERROR_MESSAGES.USER_NOT_FOUND_OR_PASSWORD_NOT_SET);
     }
 
     const isPasswordValid = await bcrypt.compare(oldPassword, user.pwdHash);
 
     if (!isPasswordValid) {
-      throw new Error('Invalid old password');
+      throw new Error(ERROR_MESSAGES.INVALID_OLD_PASSWORD);
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);

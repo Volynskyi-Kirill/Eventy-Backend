@@ -9,7 +9,7 @@ import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { GoogleUser } from './strategys/google.strategy';
-import { SALT_ROUNDS } from 'src/shared/constants';
+import { SALT_ROUNDS, ERROR_MESSAGES } from 'src/shared/constants';
 
 export interface JwtPayload {
   sub: number;
@@ -29,7 +29,7 @@ export class AuthService {
     const existingUser = await this.usersService.findByEmail(email);
 
     if (existingUser) {
-      throw new UnauthorizedException('User already exists');
+      throw new UnauthorizedException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -51,19 +51,17 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     if (!user.pwdHash) {
-      throw new UnauthorizedException(
-        'Password is not set. Please use Google authentication.',
-      );
+      throw new UnauthorizedException(ERROR_MESSAGES.PASSWORD_NOT_SET);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.pwdHash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
     return this.generateToken(user.id, user.email);
