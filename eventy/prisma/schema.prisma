@@ -16,8 +16,10 @@ model User {
   id                 Int            @id @default(autoincrement())
   userName           String         @map("user_name")
   userSurname        String?        @map("user_surname")
-  phoneNumber        String?         @map("phone_number")
+  phoneNumber        String?        @map("phone_number")
   email              String         @unique
+  country            String?
+  city               String?
   pwdHash            String?        @map("pwd_hash")
   avatarUrl          String?        @map("avatar_url")
   provider           String?
