@@ -75,7 +75,9 @@ export class UsersService {
     });
 
     if (!user || !user.pwdHash) {
-      throw new BadRequestException(ERROR_MESSAGES.USER_NOT_FOUND_OR_PASSWORD_NOT_SET);
+      throw new BadRequestException(
+        ERROR_MESSAGES.USER_NOT_FOUND_OR_PASSWORD_NOT_SET,
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.pwdHash);

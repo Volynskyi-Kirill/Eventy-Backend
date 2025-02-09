@@ -19,6 +19,7 @@ model User {
   phoneNumber        String?        @map("phone_number")
   email              String         @unique
   country            String?
+  state              String?
   city               String?
   pwdHash            String?        @map("pwd_hash")
   avatarUrl          String?        @map("avatar_url")

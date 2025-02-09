@@ -23,6 +23,10 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
   city?: string;
 
   @IsOptional()
