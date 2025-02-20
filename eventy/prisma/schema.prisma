@@ -2,6 +2,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator dbml {
+  provider   = "prisma-dbml-generator"
+  output     = "./dbml"
+  outputName = "schema.dbml"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -25,7 +31,8 @@ model User {
   avatarUrl          String?        @map("avatar_url")
   provider           String?
   providerId         String?        @map("provider_id")
-  events             Event[]
+  createdEvents      Event[]        @relation("CreatedEvents")
+  speakingEvents     Event[]        @relation("SpeakingEvents")
   locations          Location[]
   soldTickets        SoldTicket[]
   ownedSubscriptions Subscription[] @relation("OwnerRelation")
@@ -46,22 +53,67 @@ model Subscription {
 }
 
 model Event {
-  id          Int       @id @default(autoincrement())
-  ownerId     Int       @map("owner_id")
-  title       String
-  subtitle    String
-  description String
-  time        DateTime
-  duration    Int?
-  locationId  Int?      @map("location_id")
-  previewImg  String?   @map("preview_img")
-  bannerImg   String?   @map("banner_img")
-  eventImg    String?   @map("event_img")
-  owner       User      @relation(fields: [ownerId], references: [id])
-  location    Location? @relation(fields: [locationId], references: [id])
-  tickets     Ticket[]
+  id               Int                @id @default(autoincrement())
+  owner            User               @relation("CreatedEvents", fields: [ownerId], references: [id])
+  ownerId          Int                @map("owner_id")
+  title            String
+  categories       Category[]
+  dates            EventDate[]
+  country          String?
+  state            String?
+  street           String?
+  buildingNumber   String?            @map("building_number")
+  speakers         User[]             @relation("SpeakingEvents")
+  shortDescription String             @map("short_description")
+  fullDescription  String             @map("full_description")
+  eventZones       EventZone[]
+  socialMedia      EventSocialMedia[]
+  coverImg         String?            @map("cover_img")
+  logoImg          String?            @map("logo_img")
+  mainImg          String?            @map("main_img")
+  userId           Int?
 
   @@map("events")
+}
+
+model Category {
+  id     Int     @id @default(autoincrement())
+  name   String
+  events Event[]
+
+  @@map("category")
+}
+
+model EventDate {
+  id      Int      @id @default(autoincrement())
+  date    DateTime
+  event   Event    @relation(fields: [eventId], references: [id])
+  eventId Int      @map("event_id")
+
+  @@map("event_dates")
+}
+
+//TODO привязываем EventZone к Ticket?
+model EventZone {
+  id        Int    @id @default(autoincrement())
+  eventId   Int    @map("event_id")
+  name      String
+  price     Int
+  currency  String
+  seatCount Int
+  event     Event  @relation(fields: [eventId], references: [id])
+
+  @@map("event_zones")
+}
+
+model EventSocialMedia {
+  id       Int    @id @default(autoincrement())
+  eventId  Int    @map("event_id")
+  platform String
+  link     String
+  event    Event  @relation(fields: [eventId], references: [id])
+
+  @@map("event_social_media")
 }
 
 model Location {
@@ -72,24 +124,22 @@ model Location {
   layout     Bytes?
   visibility Visibility
   holder     User       @relation(fields: [holderId], references: [id])
-  events     Event[]
 
   @@map("locations")
 }
 
 model Ticket {
-  id         Int          @id @default(autoincrement())
-  eventId    Int          @map("event_id")
-  placeId    Int          @map("place_id")
+  id         Int         @id @default(autoincrement())
+  eventId    Int         @map("event_id")
+  placeId    Int         @map("place_id") //нужен ли нам placeId если у нас зоны?? 
   price      Int
-  event      Event        @relation(fields: [eventId], references: [id])
-  soldTicket SoldTicket[]
+  soldTicket SoldTicket?
 
   @@map("tickets")
 }
 
 model SoldTicket {
-  ticketId Int    @map("ticket_id")
+  ticketId Int    @unique @map("ticket_id")
   buyerId  Int    @map("buyer_id")
   ticket   Ticket @relation(fields: [ticketId], references: [id])
   buyer    User   @relation(fields: [buyerId], references: [id])
