@@ -41,6 +41,12 @@ export class CreateEventZoneDto {
   seatCount: number;
 }
 
+// export class CreateEventCategoryDto {
+//   @IsString()
+//   @IsNotEmpty()
+//   name: string;
+// }
+
 export class CreateEventDto {
   @IsNumber()
   ownerId: number;
@@ -53,6 +59,12 @@ export class CreateEventDto {
   @IsArray()
   @IsNumber({}, { each: true })
   categoryIds?: number[];
+
+  //   @IsOptional()
+  //   @IsArray()
+  //   @ValidateNested({ each: true })
+  //   @Type(() => CreateEventCategoryDto)
+  //   categories?: CreateEventCategoryDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
