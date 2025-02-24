@@ -52,6 +52,8 @@ model Subscription {
   @@map("subscriptions")
 }
 
+//TODO add isFree bool
+
 model Event {
   id               Int                @id @default(autoincrement())
   owner            User               @relation("CreatedEvents", fields: [ownerId], references: [id])
@@ -130,7 +132,7 @@ model Location {
 
 model Ticket {
   id         Int         @id @default(autoincrement())
-  eventId    Int         @map("event_id")
+  eventId    Int         @map("event_id") //eventZoneId
   placeId    Int         @map("place_id") //нужен ли нам placeId если у нас зоны?? 
   price      Int
   soldTicket SoldTicket?
