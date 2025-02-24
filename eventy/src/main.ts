@@ -16,7 +16,12 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get('APPLICATION_PORT');
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.enableCors(CorsConfig);
 
