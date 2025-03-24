@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
-
+import * as path from 'path';
+import * as fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import { User } from '@prisma/client';
 @Injectable()
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -16,7 +19,7 @@ export class EventsService {
       ...eventData
     } = createEventDto;
 
-    return await this.prismaService.event.create({
+    const event = await this.prismaService.event.create({
       data: {
         ...eventData,
         dates: {
@@ -46,5 +49,38 @@ export class EventsService {
         }),
       },
     });
+
+    console.log('🚀 ~ EventsService ~ createEvent ~ event:', event);
+    
+    return event;
+  }
+
+  //TODO если юзер не создал евент, удалять загруженные изображения
+  async uploadImage(file: any, user: User) {
+    console.log('🚀 ~ EventsService ~ uploadImage ~ file:', file);
+
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const userDir = path.join(uploadsDir, `${user.id}-${user.userName}`);
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+    }
+    console.log('🚀 ~ EventsService ~ uploadImage ~ userDir:', userDir);
+
+    const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
+    const filePath = path.join(userDir, uniqueFilename);
+    console.log(
+      '🚀 ~ EventsService ~ uploadImage ~ uniqueFilename:',
+      uniqueFilename,
+    );
+
+    fs.writeFileSync(filePath, file.buffer);
+
+    return {
+      filePath: `/uploads/${user.id}-${user.userName}/${uniqueFilename}`,
+    };
   }
 }
