@@ -61,6 +61,7 @@ export class EventsService {
   }
 
   //TODO если юзер не создал евент, удалять загруженные изображения
+  //TODO привязывать изображения к евенту (хранить в папке с айдишником евета?)
   async uploadImage(file: any, user: User) {
     const uploadsDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadsDir)) {

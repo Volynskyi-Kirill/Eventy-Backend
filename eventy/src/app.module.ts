@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtGuard } from './auth/guards/jwt.guard';
 import { UsersModule } from './users/users.module';
 import { EventsModule } from './events/events.module';
+import { CategoriesModule } from './categories/categories.module';
 
 const jwtGuard = {
   provide: APP_GUARD,
@@ -21,6 +22,7 @@ const jwtGuard = {
     UsersModule,
     AuthModule,
     EventsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService, jwtGuard],
