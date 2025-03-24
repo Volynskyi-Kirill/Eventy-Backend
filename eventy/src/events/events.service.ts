@@ -9,7 +9,7 @@ import { User } from '@prisma/client';
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createEvent(createEventDto: CreateEventDto, user: User) {
+  async createEvent(createEventDto: CreateEventDto) {
     try {
       const {
         dates,
@@ -23,7 +23,6 @@ export class EventsService {
       const event = await this.prismaService.event.create({
         data: {
           ...eventData,
-          ownerId: user.id,
           dates: {
             create: dates.map((dateDto) => ({
               date: new Date(dateDto.date),
