@@ -5,11 +5,25 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@prisma/client';
+import {
+  determineImageType,
+  createTypedFilename,
+  getImageFieldByType,
+} from './helpers/utils';
+import {
+  TEMP_UPLOADS_DIR,
+  TEMP_UPLOADS_URL_PREFIX,
+  getUserDir,
+  getEventDir,
+  getEventImageUrlPath,
+  FILE_CLEANUP,
+} from './helpers/constants';
+
 @Injectable()
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createEvent(createEventDto: CreateEventDto) {
+  async createEvent(createEventDto: CreateEventDto, user: User) {
     try {
       const {
         dates,
@@ -17,6 +31,9 @@ export class EventsService {
         socialMedia,
         categoryIds,
         speakerIds,
+        coverImg,
+        logoImg,
+        mainImg,
         ...eventData
       } = createEventDto;
 
@@ -51,7 +68,14 @@ export class EventsService {
         },
       });
 
-      console.log('🚀 ~ EventsService ~ createEvent ~ event:', event);
+      const imagePaths = [coverImg, logoImg, mainImg].filter(
+        Boolean,
+      ) as string[];
+
+      const isImageUploaded = imagePaths.length > 0;
+      if (isImageUploaded) {
+        await this.moveEventImages(imagePaths, event.id, user, createEventDto);
+      }
 
       return event;
     } catch (error) {
@@ -60,26 +84,128 @@ export class EventsService {
     }
   }
 
-  //TODO если юзер не создал евент, удалять загруженные изображения
-  //TODO привязывать изображения к евенту (хранить в папке с айдишником евета?)
-  async uploadImage(file: any, user: User) {
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const userDir = path.join(uploadsDir, `${user.id}-${user.userName}`);
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
+  async uploadImage(file: any) {
+    const isTempDirExists = fs.existsSync(TEMP_UPLOADS_DIR);
+    if (!isTempDirExists) {
+      fs.mkdirSync(TEMP_UPLOADS_DIR, { recursive: true });
     }
 
     const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
-    const filePath = path.join(userDir, uniqueFilename);
+    const filePath = path.join(TEMP_UPLOADS_DIR, uniqueFilename);
 
     fs.writeFileSync(filePath, file.buffer);
 
     return {
-      filePath: `/uploads/${user.id}-${user.userName}/${uniqueFilename}`,
+      filePath: `${TEMP_UPLOADS_URL_PREFIX}/${uniqueFilename}`,
     };
+  }
+
+  async moveEventImages(
+    imagePaths: string[],
+    eventId: number,
+    user: User,
+    createEventDto: CreateEventDto,
+  ) {
+    try {
+      const { coverImg, logoImg, mainImg } = createEventDto;
+
+      const userDir = getUserDir(user.id, user.userName);
+
+      const isUserDirExists = fs.existsSync(userDir);
+      if (!isUserDirExists) {
+        fs.mkdirSync(userDir, { recursive: true });
+      }
+
+      const eventDir = getEventDir(userDir, eventId);
+
+      const isEventDirExists = fs.existsSync(eventDir);
+      if (!isEventDirExists) {
+        fs.mkdirSync(eventDir, { recursive: true });
+      }
+
+      const updatedImagePaths: Record<string, string> = {};
+      const movedFiles: string[] = [];
+
+      for (const imagePath of imagePaths) {
+        const filename = path.basename(imagePath);
+        const tempFilePath = path.join(process.cwd(), imagePath.slice(1));
+
+        if (fs.existsSync(tempFilePath)) {
+          const imageType = determineImageType(
+            imagePath,
+            coverImg,
+            logoImg,
+            mainImg,
+          );
+
+          if (!imageType) {
+            continue;
+          }
+
+          const newFilename = createTypedFilename(filename, imageType);
+          const destinationFilePath = path.join(eventDir, newFilename);
+
+          fs.copyFileSync(tempFilePath, destinationFilePath);
+          movedFiles.push(tempFilePath);
+
+          const newPath = getEventImageUrlPath(
+            user.id,
+            user.userName,
+            eventId,
+            newFilename,
+          );
+
+          const fieldName = getImageFieldByType(imageType);
+          updatedImagePaths[fieldName] = newPath;
+        }
+      }
+
+      const isUpdatedImagePaths = Object.keys(updatedImagePaths).length > 0;
+      if (isUpdatedImagePaths) {
+        await this.updateEventImagePaths(eventId, updatedImagePaths);
+      }
+
+      for (const file of movedFiles) {
+        if (fs.existsSync(file)) {
+          fs.unlinkSync(file);
+        }
+      }
+
+      this.cleanupTempDirectory();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error moving event images:', error);
+      throw error;
+    }
+  }
+
+  async updateEventImagePaths(
+    eventId: number,
+    imagePaths: Record<string, string>,
+  ) {
+    return this.prismaService.event.update({
+      where: { id: eventId },
+      data: imagePaths,
+    });
+  }
+
+  async cleanupTempDirectory() {
+    if (!fs.existsSync(TEMP_UPLOADS_DIR)) return;
+
+    const files = fs.readdirSync(TEMP_UPLOADS_DIR);
+    const now = Date.now();
+
+    const TIME_TO_DELETE_FILE = FILE_CLEANUP.TEN_SECONDS;
+
+    for (const file of files) {
+      const filePath = path.join(TEMP_UPLOADS_DIR, file);
+      const stats = fs.statSync(filePath);
+
+      const isOld = now - stats.mtimeMs > TIME_TO_DELETE_FILE;
+      if (isOld) {
+        fs.unlinkSync(filePath);
+      }
+    }
   }
 }
