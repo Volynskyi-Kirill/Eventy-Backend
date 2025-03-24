@@ -9,56 +9,60 @@ import { User } from '@prisma/client';
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createEvent(createEventDto: CreateEventDto) {
-    const {
-      dates,
-      eventZones,
-      socialMedia,
-      categoryIds,
-      speakerIds,
-      ...eventData
-    } = createEventDto;
+  async createEvent(createEventDto: CreateEventDto, user: User) {
+    try {
+      const {
+        dates,
+        eventZones,
+        socialMedia,
+        categoryIds,
+        speakerIds,
+        ...eventData
+      } = createEventDto;
 
-    const event = await this.prismaService.event.create({
-      data: {
-        ...eventData,
-        dates: {
-          create: dates.map((dateDto) => ({
-            date: new Date(dateDto.date),
-          })),
-        },
-
-        eventZones: {
-          create: eventZones,
-        },
-
-        socialMedia: {
-          create: socialMedia,
-        },
-
-        ...(categoryIds && {
-          categories: {
-            connect: categoryIds.map((id) => ({ id })),
+      const event = await this.prismaService.event.create({
+        data: {
+          ...eventData,
+          ownerId: user.id,
+          dates: {
+            create: dates.map((dateDto) => ({
+              date: new Date(dateDto.date),
+            })),
           },
-        }),
 
-        ...(speakerIds && {
-          speakers: {
-            connect: speakerIds.map((id) => ({ id })),
+          eventZones: {
+            create: eventZones,
           },
-        }),
-      },
-    });
 
-    console.log('🚀 ~ EventsService ~ createEvent ~ event:', event);
-    
-    return event;
+          socialMedia: {
+            create: socialMedia,
+          },
+
+          ...(categoryIds && {
+            categories: {
+              connect: categoryIds.map((id) => ({ id })),
+            },
+          }),
+
+          ...(speakerIds && {
+            speakers: {
+              connect: speakerIds.map((id) => ({ id })),
+            },
+          }),
+        },
+      });
+
+      console.log('🚀 ~ EventsService ~ createEvent ~ event:', event);
+
+      return event;
+    } catch (error) {
+      console.error('Error creating event:', error);
+      throw error;
+    }
   }
 
   //TODO если юзер не создал евент, удалять загруженные изображения
   async uploadImage(file: any, user: User) {
-    console.log('🚀 ~ EventsService ~ uploadImage ~ file:', file);
-
     const uploadsDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -68,14 +72,9 @@ export class EventsService {
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
     }
-    console.log('🚀 ~ EventsService ~ uploadImage ~ userDir:', userDir);
 
     const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
     const filePath = path.join(userDir, uniqueFilename);
-    console.log(
-      '🚀 ~ EventsService ~ uploadImage ~ uniqueFilename:',
-      uniqueFilename,
-    );
 
     fs.writeFileSync(filePath, file.buffer);
 

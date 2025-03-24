@@ -63,6 +63,7 @@ model Event {
   dates            EventDate[]
   country          String?
   state            String?
+  city             String?
   street           String?
   buildingNumber   String?            @map("building_number")
   speakers         User[]             @relation("SpeakingEvents")
@@ -73,7 +74,7 @@ model Event {
   coverImg         String?            @map("cover_img")
   logoImg          String?            @map("logo_img")
   mainImg          String?            @map("main_img")
-  userId           Int?
+  userId           Int? //зачем это поле? удалить? 
 
   @@map("events")
 }

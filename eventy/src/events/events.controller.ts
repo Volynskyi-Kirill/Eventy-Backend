@@ -16,9 +16,12 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Post('')
-  createEvent(@Body() createEventDto: CreateEventDto) {
-    console.log("🚀 ~ EventsController ~ createEvent ~ createEventDto:", createEventDto)
-    return this.eventsService.createEvent(createEventDto);
+  createEvent(@Body() createEventDto: CreateEventDto, @GetUser() user: User) {
+    console.log(
+      '🚀 ~ EventsController ~ createEvent ~ createEventDto:',
+      createEventDto,
+    );
+    return this.eventsService.createEvent(createEventDto, user);
   }
 
   @Post('upload-image')

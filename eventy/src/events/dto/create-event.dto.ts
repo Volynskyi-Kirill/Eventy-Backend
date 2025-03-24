@@ -69,6 +69,10 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
   street?: string;
 
   @IsOptional()
