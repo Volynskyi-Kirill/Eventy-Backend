@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,23 +32,30 @@ export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getAllEvents(dto: GetAllEventsDto) {
+    console.log('🚀 ~ EventsService ~ getAllEvents ~ dto:', dto);
     const where = buildEventWhereClause(dto);
     const skip = calculateSkip(dto.page, dto.limit);
     const orderBy = createOrderByObject(dto.sortBy, dto.sortDirection);
 
     const totalEvents = await this.prismaService.event.count({ where });
 
-    const events = await this.prismaService.event.findMany({
-      skip,
-      take: dto.limit,
-      where,
-      orderBy,
-      include: {
-        categories: true,
-        dates: true,
-        eventZones: true,
-      },
-    });
+    let events;
+    try {
+      events = await this.prismaService.event.findMany({
+        skip,
+        take: dto.limit,
+        where,
+        orderBy,
+        include: {
+          categories: true,
+          dates: true,
+          eventZones: true,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      throw new InternalServerErrorException();
+    }
 
     const transformedEvents = transformEventData(events);
 

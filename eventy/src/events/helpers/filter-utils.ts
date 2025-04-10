@@ -73,6 +73,8 @@ export function transformEventData(events: any[]): any[] {
       title: event.title,
       mainImg: event.mainImg,
       categories: event.categories,
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
       location: {
         country: event.country,
         state: event.state,

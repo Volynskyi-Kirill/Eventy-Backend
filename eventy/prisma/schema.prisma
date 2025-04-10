@@ -75,6 +75,8 @@ model Event {
   logoImg          String?            @map("logo_img")
   mainImg          String?            @map("main_img")
   userId           Int? //зачем это поле? удалить? 
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime?          @updatedAt
 
   @@map("events")
 }
