@@ -59,7 +59,7 @@ export class EventsService {
   }
 
   async getEventById(id: number) {
-    return this.prismaService.event.findUnique({
+    return this.prismaService.event.findUniqueOrThrow({
       where: { id },
       include: {
         dates: true,

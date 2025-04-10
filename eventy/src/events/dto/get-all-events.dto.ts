@@ -69,8 +69,8 @@ export class GetAllEventsDto {
     if (!value) return undefined;
     return value
       .split(',')
-      .map((id) => parseInt(id))
-      .filter((id) => !isNaN(id));
+      .map((id: string) => parseInt(id))
+      .filter((id: number) => !isNaN(id));
   })
   categoryIds?: number[];
 

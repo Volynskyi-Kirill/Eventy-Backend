@@ -9,4 +9,5 @@ export const ERROR_MESSAGES = {
   INVALID_CREDENTIALS: 'Invalid credentials',
   UNIQUE_CONSTRAINT_FAILED: 'Unique constraint failed on the fields',
   INTERNAL_SERVER_ERROR: 'Internal server error',
+  RESOURCE_NOT_FOUND: 'The requested resource does not exist',
 };

@@ -22,8 +22,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : 'unknown';
         return response.status(HttpStatus.CONFLICT).json({
           statusCode: HttpStatus.CONFLICT,
+
           message: `${ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED} (${fields})`,
           error: 'Conflict',
+        });
+      }
+
+      if (exception.code === 'P2025') {
+        return response.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+          error: 'Not Found',
+          timestamp: new Date().toISOString(),
+          path: request.url,
         });
       }
     }
