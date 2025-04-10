@@ -4,6 +4,9 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  Get,
+  Param,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from '@prisma/client';
@@ -23,6 +26,11 @@ export class EventsController {
     const event = await this.eventsService.createEvent(createEventDto, user);
 
     return event;
+  }
+
+  @Get(':id')
+  async getEventById(@Param('id', ParseIntPipe) id: number) {
+    return this.eventsService.getEventById(id);
   }
 
   @Post('upload-image')

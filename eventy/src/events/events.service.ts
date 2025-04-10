@@ -23,6 +23,28 @@ import {
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  async getEventById(id: number) {
+    return this.prismaService.event.findUnique({
+      where: { id },
+      include: {
+        dates: true,
+        eventZones: true,
+        socialMedia: true,
+        categories: true,
+        speakers: true,
+        owner: {
+          select: {
+            id: true,
+            userName: true,
+            userSurname: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+  }
+
   async createEvent(createEventDto: CreateEventDto, user: User) {
     try {
       const {
