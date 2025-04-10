@@ -27,3 +27,10 @@ export const FILE_CLEANUP = {
   TEN_MINUTES: 10 * 60 * 1000,
   ONE_DAY: 24 * 60 * 60 * 1000,
 };
+
+export const DEFAULT = {
+  SORT_BY: 'id',
+  SORT_DIRECTION: 'desc',
+  PAGE: 1,
+  LIMIT: 10,
+};

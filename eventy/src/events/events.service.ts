@@ -1,27 +1,62 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateEventDto } from './dto/create-event.dto';
-import * as path from 'path';
-import * as fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
 import { User } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { v4 as uuidv4 } from 'uuid';
+import { CreateEventDto } from './dto/create-event.dto';
+import { GetAllEventsDto } from './dto/get-all-events.dto';
 import {
-  determineImageType,
-  createTypedFilename,
-  getImageFieldByType,
-} from './helpers/utils';
-import {
+  FILE_CLEANUP,
   TEMP_UPLOADS_DIR,
   TEMP_UPLOADS_URL_PREFIX,
-  getUserDir,
   getEventDir,
   getEventImageUrlPath,
-  FILE_CLEANUP,
+  getUserDir,
 } from './helpers/constants';
+import {
+  buildEventWhereClause,
+  buildPaginationMetadata,
+  calculateSkip,
+  createOrderByObject,
+  transformEventData,
+} from './helpers/filter-utils';
+import {
+  createTypedFilename,
+  determineImageType,
+  getImageFieldByType,
+} from './helpers/utils';
 
 @Injectable()
 export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
+
+  async getAllEvents(dto: GetAllEventsDto) {
+    const where = buildEventWhereClause(dto);
+    const skip = calculateSkip(dto.page, dto.limit);
+    const orderBy = createOrderByObject(dto.sortBy, dto.sortDirection);
+
+    const totalEvents = await this.prismaService.event.count({ where });
+
+    const events = await this.prismaService.event.findMany({
+      skip,
+      take: dto.limit,
+      where,
+      orderBy,
+      include: {
+        categories: true,
+        dates: true,
+        eventZones: true,
+      },
+    });
+
+    const transformedEvents = transformEventData(events);
+
+    return {
+      events: transformedEvents,
+      pagination: buildPaginationMetadata(totalEvents, dto.page, dto.limit),
+    };
+  }
 
   async getEventById(id: number) {
     return this.prismaService.event.findUnique({
