@@ -32,7 +32,6 @@ export class EventsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getAllEvents(dto: GetAllEventsDto) {
-    console.log('🚀 ~ EventsService ~ getAllEvents ~ dto:', dto);
     const where = buildEventWhereClause(dto);
     const skip = calculateSkip(dto.page, dto.limit);
     const orderBy = createOrderByObject(dto.sortBy, dto.sortDirection);

@@ -28,14 +28,16 @@ export function buildEventWhereClause(
     where.city = dto.location.city;
   }
 
-  const isPriceFilter =
-    dto.price?.min !== undefined || dto.price?.max !== undefined;
+  const isMinPriceFilter = dto.minPrice !== undefined;
+  const isMaxPriceFilter = dto.maxPrice !== undefined;
+  const isPriceFilter = isMinPriceFilter || isMaxPriceFilter;
+
   if (isPriceFilter) {
     where.eventZones = {
       some: {
         AND: [
-          dto.price?.min !== undefined ? { price: { gte: dto.price.min } } : {},
-          dto.price?.max !== undefined ? { price: { lte: dto.price.max } } : {},
+          isMinPriceFilter ? { price: { gte: dto.minPrice } } : {},
+          isMaxPriceFilter ? { price: { lte: dto.maxPrice } } : {},
         ],
       },
     };

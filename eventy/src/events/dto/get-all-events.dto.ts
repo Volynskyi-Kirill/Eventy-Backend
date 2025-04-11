@@ -2,7 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
-  IsNumberString,
+  IsNumber,
   IsOptional,
   IsString,
   Min,
@@ -27,20 +27,6 @@ export class LocationFilterDto {
   @IsOptional()
   @IsString()
   city?: string;
-}
-
-export class PriceFilterDto {
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Transform(({ value }) => (value !== undefined ? parseInt(value) : undefined))
-  min?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Transform(({ value }) => (value !== undefined ? parseInt(value) : undefined))
-  max?: number;
 }
 
 export class GetAllEventsDto {
@@ -75,22 +61,21 @@ export class GetAllEventsDto {
   categoryIds?: number[];
 
   @IsOptional()
-  @ValidateNested()
-  @Type(() => PriceFilterDto)
-  @Transform(({ value, obj }) => {
-    if (!obj.minPrice && !obj.maxPrice) return undefined;
+  @IsNumber()
+  @Min(0)
+  @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
+  minPrice?: number;
 
-    const dto = new PriceFilterDto();
-    dto.min = obj.minPrice !== undefined ? parseInt(obj.minPrice) : undefined;
-    dto.max = obj.maxPrice !== undefined ? parseInt(obj.maxPrice) : undefined;
-    return dto;
-  })
-  price?: PriceFilterDto;
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
+  maxPrice?: number;
 
   @IsOptional()
   @ValidateNested()
   @Type(() => LocationFilterDto)
-  @Transform(({ value, obj }) => {
+  @Transform(({ obj }) => {
     if (!obj.country && !obj.state && !obj.city) return undefined;
 
     const dto = new LocationFilterDto();
@@ -100,13 +85,4 @@ export class GetAllEventsDto {
     return dto;
   })
   location?: LocationFilterDto;
-
-  // These properties are used for transformation only
-  @IsOptional()
-  @IsNumberString()
-  minPrice?: string;
-
-  @IsOptional()
-  @IsNumberString()
-  maxPrice?: string;
 }
