@@ -12,24 +12,28 @@ export class TicketsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async generateTicketsForEventZones(eventZones: EventZone[]) {
-    try {
-      for (const zone of eventZones) {
-        const ticketsToCreate = Array.from(
-          { length: zone.seatCount },
-          (_, index) => ({
-            eventZoneId: zone.id,
-            seatNumber: index + 1, // Start from seat number 1
-            status: TICKET_STATUS.AVAILABLE,
-          }),
-        );
+    for (const eventZone of eventZones) {
+      const { id: eventZoneId, seatCount } = eventZone;
 
+      const ticketsData = Array.from({ length: seatCount }, (_, seatIndex) => ({
+        eventZoneId,
+        seatNumber: seatIndex + 1,
+        status: TICKET_STATUS.AVAILABLE,
+      }));
+
+      try {
         await this.prismaService.ticket.createMany({
-          data: ticketsToCreate,
+          data: ticketsData,
         });
+      } catch (error) {
+        console.error(
+          `Error generating tickets for event zone ${eventZoneId}:`,
+          error,
+        );
+        throw new InternalServerErrorException(
+          'Failed to generate tickets for event zone',
+        );
       }
-    } catch (error) {
-      console.error('Error generating tickets for event zones:', error);
-      throw new InternalServerErrorException('Failed to generate tickets');
     }
   }
 

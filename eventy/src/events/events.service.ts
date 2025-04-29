@@ -138,7 +138,6 @@ export class EventsService {
         },
       });
 
-      // Generate tickets for each event zone using the ticket service
       await this.ticketsService.generateTicketsForEventZones(event.eventZones);
 
       const imagePaths = [coverImg, logoImg, mainImg].filter(
