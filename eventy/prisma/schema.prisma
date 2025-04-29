@@ -13,9 +13,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Visibility {
-  public
-  private
+enum VISIBILITY {
+  PUBLIC
+  PRIVATE
+}
+
+enum TICKET_STATUS {
+  AVAILABLE
+  RESERVED
+  SOLD
 }
 
 model User {
@@ -98,15 +104,15 @@ model EventDate {
   @@map("event_dates")
 }
 
-//TODO привязываем EventZone к Ticket?
 model EventZone {
-  id        Int    @id @default(autoincrement())
-  eventId   Int    @map("event_id")
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
   name      String
   price     Int
   currency  String
   seatCount Int
-  event     Event  @relation(fields: [eventId], references: [id])
+  event     Event    @relation(fields: [eventId], references: [id])
+  tickets   Ticket[]
 
   @@map("event_zones")
 }
@@ -127,27 +133,30 @@ model Location {
   picture    String?
   coords     String?
   layout     Bytes?
-  visibility Visibility
+  visibility VISIBILITY
   holder     User       @relation(fields: [holderId], references: [id])
 
   @@map("locations")
 }
 
 model Ticket {
-  id         Int         @id @default(autoincrement())
-  eventId    Int         @map("event_id") //eventZoneId
-  placeId    Int         @map("place_id") //нужен ли нам placeId если у нас зоны?? 
-  price      Int
-  soldTicket SoldTicket?
+  id          Int           @id @default(autoincrement())
+  eventZoneId Int           @map("event_zone_id")
+  seatNumber  Int           @map("seat_number")
+  status      TICKET_STATUS @default(AVAILABLE)
+  eventZone   EventZone     @relation(fields: [eventZoneId], references: [id])
+  soldTicket  SoldTicket?
 
+  @@unique([eventZoneId, seatNumber])
   @@map("tickets")
 }
 
 model SoldTicket {
-  ticketId Int    @unique @map("ticket_id")
-  buyerId  Int    @map("buyer_id")
-  ticket   Ticket @relation(fields: [ticketId], references: [id])
-  buyer    User   @relation(fields: [buyerId], references: [id])
+  ticketId Int      @unique @map("ticket_id")
+  buyerId  Int      @map("buyer_id")
+  soldAt   DateTime @default(now()) @map("sold_at")
+  ticket   Ticket   @relation(fields: [ticketId], references: [id])
+  buyer    User     @relation(fields: [buyerId], references: [id])
 
   @@id([ticketId, buyerId])
   @@map("sold_tickets")

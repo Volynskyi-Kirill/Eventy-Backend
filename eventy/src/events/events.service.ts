@@ -3,6 +3,7 @@ import { User } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { TicketsService } from 'src/tickets/tickets.service';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
@@ -29,7 +30,10 @@ import {
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly ticketsService: TicketsService,
+  ) {}
 
   async getAllEvents(dto: GetAllEventsDto) {
     const where = buildEventWhereClause(dto);
@@ -129,7 +133,13 @@ export class EventsService {
             },
           }),
         },
+        include: {
+          eventZones: true,
+        },
       });
+
+      // Generate tickets for each event zone using the ticket service
+      await this.ticketsService.generateTicketsForEventZones(event.eventZones);
 
       const imagePaths = [coverImg, logoImg, mainImg].filter(
         Boolean,
