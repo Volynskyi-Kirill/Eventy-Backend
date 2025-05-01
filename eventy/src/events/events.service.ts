@@ -107,6 +107,7 @@ export class EventsService {
       const event = await this.prismaService.event.create({
         data: {
           ...eventData,
+          ownerId: user.id,
           dates: {
             create: dates.map((dateDto) => ({
               date: new Date(dateDto.date),
@@ -135,10 +136,14 @@ export class EventsService {
         },
         include: {
           eventZones: true,
+          dates: true,
         },
       });
 
-      await this.ticketsService.generateTicketsForEventZones(event.eventZones);
+      await this.ticketsService.generateTicketsForEventZones(
+        event.eventZones,
+        event.dates,
+      );
 
       const imagePaths = [coverImg, logoImg, mainImg].filter(
         Boolean,

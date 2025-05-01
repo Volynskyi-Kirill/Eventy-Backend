@@ -100,6 +100,7 @@ model EventDate {
   date    DateTime
   event   Event    @relation(fields: [eventId], references: [id])
   eventId Int      @map("event_id")
+  tickets Ticket[]
 
   @@map("event_dates")
 }
@@ -142,12 +143,14 @@ model Location {
 model Ticket {
   id          Int           @id @default(autoincrement())
   eventZoneId Int           @map("event_zone_id")
+  eventDateId Int           @map("event_date_id")
   seatNumber  Int           @map("seat_number")
   status      TICKET_STATUS @default(AVAILABLE)
   eventZone   EventZone     @relation(fields: [eventZoneId], references: [id])
+  eventDate   EventDate     @relation(fields: [eventDateId], references: [id])
   soldTicket  SoldTicket?
 
-  @@unique([eventZoneId, seatNumber])
+  @@unique([eventZoneId, eventDateId, seatNumber])
   @@map("tickets")
 }
 

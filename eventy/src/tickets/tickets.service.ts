@@ -4,59 +4,69 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { EventZone, TICKET_STATUS } from '@prisma/client';
+import { EventDate, EventZone, TICKET_STATUS } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TicketsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async generateTicketsForEventZones(eventZones: EventZone[]) {
+  async generateTicketsForEventZones(
+    eventZones: EventZone[],
+    eventDates: EventDate[],
+  ) {
     for (const eventZone of eventZones) {
       const { id: eventZoneId, seatCount } = eventZone;
 
-      const ticketsData = Array.from({ length: seatCount }, (_, seatIndex) => ({
-        eventZoneId,
-        seatNumber: seatIndex + 1,
-        status: TICKET_STATUS.AVAILABLE,
-      }));
+      for (const eventDate of eventDates) {
+        const { id: eventDateId } = eventDate;
 
-      try {
-        await this.prismaService.ticket.createMany({
-          data: ticketsData,
-        });
-      } catch (error) {
-        console.error(
-          `Error generating tickets for event zone ${eventZoneId}:`,
-          error,
+        const ticketsData = Array.from(
+          { length: seatCount },
+          (_, seatIndex) => ({
+            eventZoneId,
+            eventDateId,
+            seatNumber: seatIndex + 1,
+            status: TICKET_STATUS.AVAILABLE,
+          }),
         );
-        throw new InternalServerErrorException(
-          'Failed to generate tickets for event zone',
-        );
+
+        try {
+          await this.prismaService.ticket.createMany({
+            data: ticketsData,
+          });
+        } catch (error) {
+          console.error(
+            `Error generating tickets for event zone ${eventZoneId} and date ${eventDateId}:`,
+            error,
+          );
+          throw new InternalServerErrorException(
+            'Failed to generate tickets for event zone and date',
+          );
+        }
       }
     }
   }
 
-  async getAvailableTickets(eventId: number, eventZoneId?: number) {
-    const where = eventZoneId
-      ? {
-          eventZone: {
-            id: eventZoneId,
-            eventId: eventId,
-          },
-          status: TICKET_STATUS.AVAILABLE,
-        }
-      : {
-          eventZone: {
-            eventId: eventId,
-          },
-          status: TICKET_STATUS.AVAILABLE,
-        };
+  async getAvailableTickets(
+    eventId: number,
+    eventZoneId?: number,
+    eventDateId?: number,
+  ) {
+    const where = {
+      eventZone: {
+        eventId: eventId,
+        ...(eventZoneId && { id: eventZoneId }),
+      },
+      ...(eventDateId && { eventDateId }),
+      status: TICKET_STATUS.AVAILABLE,
+    };
 
     return this.prismaService.ticket.findMany({
       where,
       include: {
         eventZone: true,
+        eventDate: true,
       },
     });
   }
@@ -64,6 +74,10 @@ export class TicketsService {
   async purchaseTicket(ticketId: number, userId: number) {
     const ticket = await this.prismaService.ticket.findUnique({
       where: { id: ticketId },
+      include: {
+        eventZone: true,
+        eventDate: true,
+      },
     });
 
     if (!ticket) {
@@ -80,6 +94,10 @@ export class TicketsService {
         const updatedTicket = await prisma.ticket.update({
           where: { id: ticketId },
           data: { status: TICKET_STATUS.SOLD },
+          include: {
+            eventZone: true,
+            eventDate: true,
+          },
         });
 
         // Create sold ticket record
@@ -112,6 +130,7 @@ export class TicketsService {
                 event: true,
               },
             },
+            eventDate: true,
           },
         },
       },
