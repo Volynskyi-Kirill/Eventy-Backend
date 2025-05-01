@@ -9,6 +9,7 @@ import {
 import { User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { Public } from 'src/auth/decorators/public.decorator';
+import { OptionalParseIntPipe } from 'src/shared/pipes';
 import { TicketsService } from './tickets.service';
 
 @Controller('tickets')
@@ -19,7 +20,7 @@ export class TicketsController {
   @Get('event/:eventId')
   async getAvailableTickets(
     @Param('eventId', ParseIntPipe) eventId: number,
-    @Query('zoneId', new ParseIntPipe({ optional: true })) zoneId?: number,
+    @Query('zoneId', OptionalParseIntPipe) zoneId?: number,
   ) {
     return this.ticketsService.getAvailableTickets(eventId, zoneId);
   }
