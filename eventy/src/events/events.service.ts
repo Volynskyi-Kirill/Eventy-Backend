@@ -291,16 +291,24 @@ export class EventsService {
     const RECOMMENDED_EVENTS_LIMIT = 10;
 
     try {
-      // For now, we're just returning the most recent events regardless of user
-      // In the future, this will use user preferences, location, etc.
+      if (user) {
+        // Future implementation for personalized recommendations based on user preferences
+        // Will consider user.country, user.city, etc.
+      }
 
-      // Basic check if user exists - will be expanded with actual recommendation logic later
-      const isLoggedIn = !!user;
+      const currentDate = new Date();
 
-
-      //TODO давать евенты только предстоящие, которые уже прошли не давать
       const events = await this.prismaService.event.findMany({
         take: RECOMMENDED_EVENTS_LIMIT,
+        where: {
+          dates: {
+            some: {
+              date: {
+                gt: currentDate,
+              },
+            },
+          },
+        },
         orderBy: {
           createdAt: 'desc',
         },
