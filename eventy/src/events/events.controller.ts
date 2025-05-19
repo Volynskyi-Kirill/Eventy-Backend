@@ -31,6 +31,12 @@ export class EventsController {
     return event;
   }
 
+  @Public()
+  @Get('recommended')
+  async getRecommendedEvents(@GetUser() user?: User) {
+    return this.eventsService.getRecommendedEvents(user);
+  }
+
   //TODO REMOVE LATER
   @Public()
   @Get('')

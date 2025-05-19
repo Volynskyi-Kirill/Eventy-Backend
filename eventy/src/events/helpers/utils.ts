@@ -52,3 +52,52 @@ export function getImageFieldByType(imageType: EventImageType): string {
       throw new Error(`Unknown image type: ${imageType}`);
   }
 }
+
+/**
+ * Formats event data for recommendation display
+ */
+export function formatEventForRecommendation(event: any) {
+  const lowestPriceZone = event.eventZones[0];
+
+  const highestPriceZone =
+    event.eventZones.length > 1
+      ? event.eventZones.reduce(
+          (max: any, zone: any) => (zone.price > max.price ? zone : max),
+          event.eventZones[0],
+        )
+      : lowestPriceZone;
+
+  const nearestDate = event.dates[0];
+
+  const allDates = event.dates.map((dateObj: any) => ({
+    date: dateObj.date.toISOString().split('T')[0],
+    time: dateObj.date.toISOString().split('T')[1].substring(0, 5),
+    dateObj: dateObj.date,
+  }));
+
+  return {
+    id: event.id,
+    title: event.title,
+    description: event.shortDescription,
+    categories: event.categories.map((category: any) => category.name),
+    minPrice: lowestPriceZone?.price || 0,
+    maxPrice: highestPriceZone?.price || 0,
+    currency: lowestPriceZone?.currency || 'USD',
+    numberOfSeats: event.eventZones.reduce(
+      (total: number, zone: any) => total + zone.seatCount,
+      0,
+    ),
+    nearestDate: nearestDate
+      ? {
+          date: nearestDate.date.toISOString().split('T')[0],
+          time: nearestDate.date.toISOString().split('T')[1].substring(0, 5),
+          dateObj: nearestDate.date,
+        }
+      : null,
+    dates: allDates,
+    country: event.country,
+    city: event.city,
+    backgroundImage: event.mainImg || event.coverImg,
+    owner: event.owner,
+  };
+}

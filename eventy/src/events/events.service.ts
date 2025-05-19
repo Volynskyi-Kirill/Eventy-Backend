@@ -25,6 +25,7 @@ import {
 import {
   createTypedFilename,
   determineImageType,
+  formatEventForRecommendation,
   getImageFieldByType,
 } from './helpers/utils';
 
@@ -283,6 +284,54 @@ export class EventsService {
       if (isOld) {
         fs.unlinkSync(filePath);
       }
+    }
+  }
+
+  async getRecommendedEvents(user?: User) {
+    const RECOMMENDED_EVENTS_LIMIT = 10;
+
+    try {
+      // For now, we're just returning the most recent events regardless of user
+      // In the future, this will use user preferences, location, etc.
+
+      // Basic check if user exists - will be expanded with actual recommendation logic later
+      const isLoggedIn = !!user;
+
+
+      //TODO давать евенты только предстоящие, которые уже прошли не давать
+      const events = await this.prismaService.event.findMany({
+        take: RECOMMENDED_EVENTS_LIMIT,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          categories: true,
+          dates: {
+            orderBy: {
+              date: 'asc',
+            },
+          },
+          eventZones: {
+            orderBy: {
+              price: 'asc',
+            },
+          },
+          owner: {
+            select: {
+              id: true,
+              userName: true,
+              userSurname: true,
+            },
+          },
+        },
+      });
+
+      return events.map((event) => formatEventForRecommendation(event));
+    } catch (error) {
+      console.error('Error fetching recommended events:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch recommended events',
+      );
     }
   }
 }
