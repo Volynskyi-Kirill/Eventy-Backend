@@ -22,6 +22,19 @@ export const getEventImageUrlPath = (
 ): string =>
   `${UPLOADS_URL_PREFIX}/${userId}-${userName}/event-${eventId}/${filename}`;
 
+// User avatar constants
+export const PERSONAL_DIR = 'personal';
+
+export const getUserPersonalDir = (userDir: string): string =>
+  path.join(userDir, PERSONAL_DIR);
+
+export const getUserAvatarPath = (
+  userId: number,
+  userName: string,
+  filename: string,
+): string =>
+  `${UPLOADS_URL_PREFIX}/${userId}-${userName}/${PERSONAL_DIR}/${filename}`;
+
 export const FILE_CLEANUP = {
   TEN_SECONDS: 10 * 1000,
   TEN_MINUTES: 10 * 60 * 1000,

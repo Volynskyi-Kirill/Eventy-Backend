@@ -2,15 +2,12 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { FileUploadService } from 'src/shared/file-upload/file-upload.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { TicketsService } from 'src/tickets/tickets.service';
-import { v4 as uuidv4 } from 'uuid';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
 import {
-  FILE_CLEANUP,
-  TEMP_UPLOADS_DIR,
-  TEMP_UPLOADS_URL_PREFIX,
   getEventDir,
   getEventImageUrlPath,
   getUserDir,
@@ -34,6 +31,7 @@ export class EventsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly ticketsService: TicketsService,
+    private readonly fileUploadService: FileUploadService,
   ) {}
 
   async getAllEvents(dto: GetAllEventsDto) {
@@ -163,19 +161,7 @@ export class EventsService {
   }
 
   async uploadImage(file: any) {
-    const isTempDirExists = fs.existsSync(TEMP_UPLOADS_DIR);
-    if (!isTempDirExists) {
-      fs.mkdirSync(TEMP_UPLOADS_DIR, { recursive: true });
-    }
-
-    const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
-    const filePath = path.join(TEMP_UPLOADS_DIR, uniqueFilename);
-
-    fs.writeFileSync(filePath, file.buffer);
-
-    return {
-      filePath: `${TEMP_UPLOADS_URL_PREFIX}/${uniqueFilename}`,
-    };
+    return this.fileUploadService.uploadTempFile(file);
   }
 
   async moveEventImages(
@@ -188,18 +174,10 @@ export class EventsService {
       const { coverImg, logoImg, mainImg } = createEventDto;
 
       const userDir = getUserDir(user.id, user.userName);
-
-      const isUserDirExists = fs.existsSync(userDir);
-      if (!isUserDirExists) {
-        fs.mkdirSync(userDir, { recursive: true });
-      }
+      this.fileUploadService.ensureDirectoryExists(userDir);
 
       const eventDir = getEventDir(userDir, eventId);
-
-      const isEventDirExists = fs.existsSync(eventDir);
-      if (!isEventDirExists) {
-        fs.mkdirSync(eventDir, { recursive: true });
-      }
+      this.fileUploadService.ensureDirectoryExists(eventDir);
 
       const updatedImagePaths: Record<string, string> = {};
       const movedFiles: string[] = [];
@@ -223,7 +201,7 @@ export class EventsService {
           const newFilename = createTypedFilename(filename, imageType);
           const destinationFilePath = path.join(eventDir, newFilename);
 
-          fs.copyFileSync(tempFilePath, destinationFilePath);
+          this.fileUploadService.moveFile(tempFilePath, destinationFilePath);
           movedFiles.push(tempFilePath);
 
           const newPath = getEventImageUrlPath(
@@ -243,13 +221,7 @@ export class EventsService {
         await this.updateEventImagePaths(eventId, updatedImagePaths);
       }
 
-      for (const file of movedFiles) {
-        if (fs.existsSync(file)) {
-          fs.unlinkSync(file);
-        }
-      }
-
-      this.cleanupTempDirectory();
+      this.fileUploadService.cleanupTempDirectory();
 
       return { success: true };
     } catch (error) {
@@ -266,25 +238,6 @@ export class EventsService {
       where: { id: eventId },
       data: imagePaths,
     });
-  }
-
-  async cleanupTempDirectory() {
-    if (!fs.existsSync(TEMP_UPLOADS_DIR)) return;
-
-    const files = fs.readdirSync(TEMP_UPLOADS_DIR);
-    const now = Date.now();
-
-    const TIME_TO_DELETE_FILE = FILE_CLEANUP.TEN_SECONDS;
-
-    for (const file of files) {
-      const filePath = path.join(TEMP_UPLOADS_DIR, file);
-      const stats = fs.statSync(filePath);
-
-      const isOld = now - stats.mtimeMs > TIME_TO_DELETE_FILE;
-      if (isOld) {
-        fs.unlinkSync(filePath);
-      }
-    }
   }
 
   async getRecommendedEvents(user?: User) {

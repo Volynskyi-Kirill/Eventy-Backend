@@ -5,7 +5,11 @@ import {
   Body,
   Query,
   NotFoundException,
+  Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { UsersService } from './users.service';
@@ -44,5 +48,11 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.update(user.id, updateUserDto);
+  }
+
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(@UploadedFile() file: any, @GetUser() user: User) {
+    return this.usersService.uploadAvatar(file, user);
   }
 }
