@@ -1,17 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import {
-  UPLOADS_DIR,
+  FILE_CLEANUP,
   TEMP_UPLOADS_DIR,
   TEMP_UPLOADS_URL_PREFIX,
-  FILE_CLEANUP,
 } from 'src/events/helpers/constants';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class FileUploadService {
-  async uploadTempFile(file: any) {
+  async uploadTempFile(file: { buffer: Buffer; originalname: string }) {
     const isTempDirExists = fs.existsSync(TEMP_UPLOADS_DIR);
     if (!isTempDirExists) {
       fs.mkdirSync(TEMP_UPLOADS_DIR, { recursive: true });

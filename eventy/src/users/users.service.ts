@@ -10,6 +10,7 @@ import {
   getUserPersonalDir,
   getUserAvatarPath,
 } from 'src/events/helpers/constants';
+import sharp from 'sharp';
 
 @Injectable()
 export class UsersService {
@@ -106,9 +107,19 @@ export class UsersService {
 
   async uploadAvatar(file: any, user: User) {
     try {
+      const croppedFile = await sharp(file.buffer)
+        .resize(256, 256, {
+          fit: 'cover',
+          position: 'center',
+        })
+        .toBuffer();
+
       // Upload file to temp directory
       const { filePath: tempPath, filename } =
-        await this.fileUploadService.uploadTempFile(file);
+        await this.fileUploadService.uploadTempFile({
+          buffer: croppedFile,
+          originalname: file.originalname, // <-- вернул
+        });
 
       // Create user directories if they don't exist
       const userDir = getUserDir(user.id, user.userName);
