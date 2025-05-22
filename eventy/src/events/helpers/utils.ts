@@ -97,7 +97,7 @@ export function formatEventForRecommendation(event: any) {
     dates: allDates,
     country: event.country,
     city: event.city,
-    backgroundImage: event.mainImg || event.coverImg,
+    backgroundImage: event.coverImg ?? event.mainImg,
     owner: event.owner,
   };
 }

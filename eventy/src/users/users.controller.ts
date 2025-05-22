@@ -50,9 +50,10 @@ export class UsersController {
     return this.usersService.update(user.id, updateUserDto);
   }
 
+  //TODO add multer for file validation
   @Post('avatar')
   @UseInterceptors(FileInterceptor('avatar'))
   async uploadAvatar(@UploadedFile() file: any, @GetUser() user: User) {
     return this.usersService.uploadAvatar(file, user);
   }
-}
+} 
