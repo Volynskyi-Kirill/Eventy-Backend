@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -10,6 +11,7 @@ import { User } from '@prisma/client';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { OptionalParseIntPipe } from 'src/shared/pipes';
+import { PurchaseTicketDto } from './dto';
 import { TicketsService } from './tickets.service';
 
 @Controller('tickets')
@@ -25,12 +27,12 @@ export class TicketsController {
     return this.ticketsService.getAvailableTickets(eventId, zoneId);
   }
 
-  @Post(':ticketId/purchase')
-  async purchaseTicket(
-    @Param('ticketId', ParseIntPipe) ticketId: number,
+  @Post('purchase')
+  async purchaseTickets(
+    @Body() purchaseTicketData: PurchaseTicketDto,
     @GetUser() user: User,
   ) {
-    return this.ticketsService.purchaseTicket(ticketId, user.id);
+    return this.ticketsService.purchaseTickets(purchaseTicketData, user);
   }
 
   @Get('user')

@@ -37,6 +37,7 @@ model User {
   avatarUrl          String?        @map("avatar_url")
   provider           String?
   providerId         String?        @map("provider_id")
+  marketingConsent   Boolean?       @map("marketing_consent")
   createdEvents      Event[]        @relation("CreatedEvents")
   speakingEvents     Event[]        @relation("SpeakingEvents")
   locations          Location[]
@@ -155,12 +156,28 @@ model Ticket {
 }
 
 model SoldTicket {
-  ticketId Int      @unique @map("ticket_id")
-  buyerId  Int      @map("buyer_id")
-  soldAt   DateTime @default(now()) @map("sold_at")
-  ticket   Ticket   @relation(fields: [ticketId], references: [id])
-  buyer    User     @relation(fields: [buyerId], references: [id])
+  ticketId            Int                  @unique @map("ticket_id")
+  buyerId             Int                  @map("buyer_id")
+  soldAt              DateTime             @default(now()) @map("sold_at")
+  paymentMethod       String               @map("payment_method")
+  purchaseContactId   Int?                 @map("purchase_contact_id")
+  ticket              Ticket               @relation(fields: [ticketId], references: [id])
+  buyer               User                 @relation(fields: [buyerId], references: [id])
+  purchaseContactInfo PurchaseContactInfo? @relation(fields: [purchaseContactId], references: [id])
 
   @@id([ticketId, buyerId])
   @@map("sold_tickets")
+}
+
+model PurchaseContactInfo {
+  id               Int          @id @default(autoincrement())
+  name             String
+  email            String
+  phone            String
+  agreeToTerms     Boolean      @map("agree_to_terms")
+  marketingConsent Boolean?     @map("marketing_consent")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  soldTickets      SoldTicket[]
+
+  @@map("purchase_contact_info")
 }

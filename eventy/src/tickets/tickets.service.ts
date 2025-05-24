@@ -4,8 +4,9 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { EventDate, EventZone, TICKET_STATUS } from '@prisma/client';
+import { EventDate, EventZone, TICKET_STATUS, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { PurchaseTicketDto } from './dto/purchase-ticket.dto';
 
 @Injectable()
 export class TicketsService {
@@ -71,51 +72,108 @@ export class TicketsService {
     });
   }
 
-  async purchaseTicket(ticketId: number, userId: number) {
-    const ticket = await this.prismaService.ticket.findUnique({
-      where: { id: ticketId },
+  async purchaseTickets(purchaseData: PurchaseTicketDto, user: User) {
+    const { ticketIds, paymentMethod, contactInfo } = purchaseData;
+
+    const tickets = await this.prismaService.ticket.findMany({
+      where: {
+        id: { in: ticketIds },
+      },
       include: {
         eventZone: true,
         eventDate: true,
       },
     });
 
-    if (!ticket) {
-      throw new NotFoundException('Ticket not found');
+    if (tickets.length !== ticketIds.length) {
+      throw new NotFoundException('One or more tickets not found');
     }
 
-    if (ticket.status === TICKET_STATUS.SOLD) {
-      throw new ConflictException('Ticket is already sold');
+    const unavailableTickets = tickets.filter(
+      (ticket) => ticket.status === TICKET_STATUS.SOLD,
+    );
+
+    if (unavailableTickets.length > 0) {
+      throw new ConflictException(
+        `Tickets with IDs ${unavailableTickets.map((t) => t.id).join(', ')} are already sold`,
+      );
     }
 
     try {
       return await this.prismaService.$transaction(async (prisma) => {
-        // Update ticket status
-        const updatedTicket = await prisma.ticket.update({
-          where: { id: ticketId },
-          data: { status: TICKET_STATUS.SOLD },
-          include: {
-            eventZone: true,
-            eventDate: true,
-          },
-        });
+        let purchaseContactId: number | null = null;
 
-        // Create sold ticket record
-        const soldTicket = await prisma.soldTicket.create({
-          data: {
-            ticketId: ticketId,
-            buyerId: userId,
-          },
-        });
+        const isContactInfoDifferent =
+          contactInfo.name !== user.userName ||
+          contactInfo.email !== user.email ||
+          contactInfo.phone !== user.phoneNumber;
+
+        if (isContactInfoDifferent) {
+          const purchaseContactInfo = await prisma.purchaseContactInfo.create({
+            data: {
+              name: contactInfo.name,
+              email: contactInfo.email,
+              phone: contactInfo.phone,
+              agreeToTerms: contactInfo.agreeToTerms,
+              marketingConsent: contactInfo.marketingConsent,
+            },
+          });
+          purchaseContactId = purchaseContactInfo.id;
+        }
+
+        const isMarketingConsentDifferent =
+          contactInfo.marketingConsent !== undefined &&
+          contactInfo.marketingConsent !== user.marketingConsent;
+
+        if (isMarketingConsentDifferent) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { marketingConsent: contactInfo.marketingConsent },
+          });
+        }
+
+        const soldTickets = [];
+
+        for (const ticketId of ticketIds) {
+          const updatedTicket = await prisma.ticket.update({
+            where: { id: ticketId },
+            data: { status: TICKET_STATUS.SOLD },
+            include: {
+              eventZone: true,
+              eventDate: true,
+            },
+          });
+
+          const soldTicket = await prisma.soldTicket.create({
+            data: {
+              ticketId: ticketId,
+              buyerId: user.id,
+              paymentMethod: paymentMethod,
+              purchaseContactId: purchaseContactId,
+            },
+          });
+
+          soldTickets.push({
+            ticket: updatedTicket,
+            soldTicket,
+          });
+        }
 
         return {
-          ticket: updatedTicket,
-          soldTicket,
+          purchasedTickets: soldTickets,
+          totalTickets: soldTickets.length,
+          paymentMethod,
+          contactInfo: purchaseContactId
+            ? {
+                id: purchaseContactId,
+                ...contactInfo,
+              }
+            : null,
         };
       });
     } catch (error) {
-      console.error('Error purchasing ticket:', error);
-      throw new InternalServerErrorException('Failed to purchase ticket');
+      console.error('Error purchasing tickets:', error);
+      throw new InternalServerErrorException('Failed to purchase tickets');
     }
   }
 
@@ -133,6 +191,7 @@ export class TicketsService {
             eventDate: true,
           },
         },
+        purchaseContactInfo: true,
       },
     });
   }
