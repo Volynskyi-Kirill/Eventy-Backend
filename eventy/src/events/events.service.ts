@@ -8,6 +8,10 @@ import { TicketsService } from 'src/tickets/tickets.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
 import {
+  GetOrganizerEventsDto,
+  EventStatus,
+} from './dto/get-organizer-events.dto';
+import {
   getEventDir,
   getEventImageUrlPath,
   getUserDir,
@@ -25,6 +29,11 @@ import {
   formatEventForRecommendation,
   getImageFieldByType,
 } from './helpers/utils';
+import {
+  transformOrganizerEventData,
+  type OrganizerEventData,
+  type GroupedOrganizerEvents,
+} from './helpers/organizer-utils';
 
 @Injectable()
 export class EventsService {
@@ -292,6 +301,54 @@ export class EventsService {
       console.error('Error fetching recommended events:', error);
       throw new InternalServerErrorException(
         'Failed to fetch recommended events',
+      );
+    }
+  }
+
+  async getOrganizerEvents(
+    dto: GetOrganizerEventsDto,
+    user: User,
+  ): Promise<GroupedOrganizerEvents> {
+    try {
+      const events = await this.prismaService.event.findMany({
+        where: {
+          ownerId: user.id,
+        },
+        include: {
+          dates: {
+            include: {
+              tickets: true,
+            },
+          },
+          eventZones: {
+            include: {
+              tickets: true,
+            },
+          },
+          categories: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      const groupedEvents = transformOrganizerEventData(
+        events as OrganizerEventData[],
+      );
+
+      // Filter by status if specified
+      switch (dto.status) {
+        case EventStatus.UPCOMING:
+          return { upcoming: groupedEvents.upcoming, past: [] };
+        case EventStatus.PAST:
+          return { upcoming: [], past: groupedEvents.past };
+        default:
+          return groupedEvents;
+      }
+    } catch (error) {
+      console.error('Error fetching organizer events:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch organizer events',
       );
     }
   }

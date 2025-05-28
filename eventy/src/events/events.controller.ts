@@ -15,6 +15,7 @@ import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
+import { GetOrganizerEventsDto } from './dto/get-organizer-events.dto';
 import { EventsService } from './events.service';
 
 @Controller('events')
@@ -29,6 +30,14 @@ export class EventsController {
     const event = await this.eventsService.createEvent(createEventDto, user);
 
     return event;
+  }
+
+  @Get('organizer')
+  async getOrganizerEvents(
+    @Query() queryParams: GetOrganizerEventsDto,
+    @GetUser() user: User,
+  ) {
+    return this.eventsService.getOrganizerEvents(queryParams, user);
   }
 
   @Public()
