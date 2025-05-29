@@ -314,15 +314,16 @@ export class EventsService {
         where: {
           ownerId: user.id,
         },
+
         include: {
-          dates: {
-            include: {
-              tickets: true,
-            },
-          },
+          dates: true,
           eventZones: {
             include: {
-              tickets: true,
+              tickets: {
+                include: {
+                  eventDate: true,
+                },
+              },
             },
           },
           categories: true,

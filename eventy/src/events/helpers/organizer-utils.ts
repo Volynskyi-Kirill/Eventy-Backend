@@ -1,8 +1,17 @@
-import { Event, EventDate, EventZone, Category, Ticket } from '@prisma/client';
+import {
+  Event,
+  EventDate,
+  EventZone,
+  Category,
+  Ticket,
+  TICKET_STATUS,
+} from '@prisma/client';
 
 export interface OrganizerEventData extends Event {
-  dates: (EventDate & { tickets: Ticket[] })[];
-  eventZones: (EventZone & { tickets: Ticket[] })[];
+  dates: EventDate[];
+  eventZones: (EventZone & {
+    tickets: (Ticket & { eventDate: EventDate })[];
+  })[];
   categories: Category[];
 }
 
@@ -88,26 +97,36 @@ function transformSingleOrganizerEvent(
   const maxPrice = Math.max(...prices);
   const currency = event.eventZones[0]?.currency || 'UAH';
 
-  // Calculate seat availability
-  const totalSeats = event.eventZones.reduce(
-    (total, zone) => total + zone.seatCount,
-    0,
-  );
-
-  // Count available tickets from all eventZones
-  const availableSeats = event.eventZones.reduce((total, zone) => {
-    const availableInZone = zone.tickets.filter(
-      (ticket) => ticket.status === 'AVAILABLE',
-    ).length;
-    return total + availableInZone;
-  }, 0);
-
   // Get all dates and find nearest
   const eventDates = event.dates.map((date) => date.date);
   const sortedDates = eventDates
     .map((date) => new Date(date))
     .sort((a, b) => a.getTime() - b.getTime());
   const nearestDate = sortedDates[0]?.toISOString() || null;
+
+  // Calculate seat availability
+  const totalSeats = event.eventZones.reduce(
+    (total, zone) => total + zone.seatCount,
+    0,
+  );
+
+  // Count available tickets from all eventZones for all dates
+  // const availableSeats = event.eventZones.reduce((total, zone) => {
+  //   const availableInZone = zone.tickets.filter(
+  //     (ticket) => ticket.status === TICKET_STATUS.AVAILABLE,
+  //   ).length;
+  //   return total + availableInZone;
+  // }, 0);
+
+  // Count available tickets for the nearest date of event
+  const availableSeats = event.eventZones.reduce((total, zone) => {
+    const availableInZone = zone.tickets.filter(
+      (ticket) =>
+        ticket.status === TICKET_STATUS.AVAILABLE &&
+        ticket.eventDate.date.toISOString() === nearestDate,
+    ).length;
+    return total + availableInZone;
+  }, 0);
 
   return {
     id: event.id,
