@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { User } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,6 +16,7 @@ import {
   GetOrganizerEventsDto,
   EventStatus,
 } from './dto/get-organizer-events.dto';
+import { GetOrganizerEventDetailsDto } from './dto/get-organizer-event-details.dto';
 import {
   getEventDir,
   getEventImageUrlPath,
@@ -34,6 +40,11 @@ import {
   type OrganizerEventData,
   type GroupedOrganizerEvents,
 } from './helpers/organizer-utils';
+import {
+  transformOrganizerEventDetails,
+  type OrganizerEventDetailsData,
+  type OrganizerEventDetails,
+} from './helpers/organizer-event-details-utils';
 
 @Injectable()
 export class EventsService {
@@ -351,6 +362,57 @@ export class EventsService {
       throw new InternalServerErrorException(
         'Failed to fetch organizer events',
       );
+    }
+  }
+
+  async getOrganizerEventDetails(
+    eventId: number,
+    dto: GetOrganizerEventDetailsDto,
+    user: User,
+  ): Promise<OrganizerEventDetails> {
+    try {
+      const event = await this.prismaService.event.findFirst({
+        where: {
+          id: eventId,
+          ownerId: user.id,
+        },
+        include: {
+          dates: true,
+          eventZones: {
+            include: {
+              tickets: {
+                include: {
+                  eventDate: true,
+                  soldTicket: {
+                    include: {
+                      buyer: true,
+                      purchaseContactInfo: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          categories: true,
+          speakers: true,
+          owner: true,
+        },
+      });
+
+      if (!event) {
+        throw new NotFoundException('Event not found or access denied');
+      }
+
+      return transformOrganizerEventDetails(
+        event as OrganizerEventDetailsData,
+        dto.selectedDate,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error fetching organizer event details:', error);
+      throw new InternalServerErrorException('Failed to fetch event details');
     }
   }
 }
