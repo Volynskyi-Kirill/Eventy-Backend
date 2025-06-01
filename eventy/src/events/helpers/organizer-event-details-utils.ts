@@ -48,7 +48,7 @@ export interface EventBooking {
   buyerEmail: string;
   contactName?: string;
   contactEmail?: string;
-  contactPhone?: string;
+  contactPhone?: string | null;
 }
 
 export interface EventStatistics {
@@ -180,9 +180,9 @@ export function transformOrganizerEventDetails(
         buyerName:
           `${soldTicket.buyer.userName} ${soldTicket.buyer.userSurname || ''}`.trim(),
         buyerEmail: soldTicket.buyer.email,
-        contactName: soldTicket.purchaseContactInfo?.name,
-        contactEmail: soldTicket.purchaseContactInfo?.email,
-        contactPhone: soldTicket.purchaseContactInfo?.phone,
+        contactName: soldTicket.purchaseContactInfo?.name ?? soldTicket.buyer.userName,
+        contactEmail: soldTicket.purchaseContactInfo?.email ?? soldTicket.buyer.email,
+        contactPhone: soldTicket.purchaseContactInfo?.phone ?? soldTicket.buyer.phoneNumber,
       };
     })
     .sort(

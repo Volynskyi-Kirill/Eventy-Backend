@@ -2,21 +2,20 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { User } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
-import { FileUploadService } from 'src/shared/file-upload/file-upload.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { FileUploadService } from 'src/shared/file-upload/file-upload.service';
 import { TicketsService } from 'src/tickets/tickets.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
-import {
-  GetOrganizerEventsDto,
-  EventStatus,
-} from './dto/get-organizer-events.dto';
 import { GetOrganizerEventDetailsDto } from './dto/get-organizer-event-details.dto';
+import {
+  EventStatus,
+  GetOrganizerEventsDto,
+} from './dto/get-organizer-events.dto';
 import {
   getEventDir,
   getEventImageUrlPath,
@@ -30,21 +29,21 @@ import {
   transformEventData,
 } from './helpers/filter-utils';
 import {
+  transformOrganizerEventDetails,
+  type OrganizerEventDetails,
+  type OrganizerEventDetailsData,
+} from './helpers/organizer-event-details-utils';
+import {
+  transformOrganizerEventData,
+  type GroupedOrganizerEvents,
+  type OrganizerEventData,
+} from './helpers/organizer-utils';
+import {
   createTypedFilename,
   determineImageType,
   formatEventForRecommendation,
   getImageFieldByType,
 } from './helpers/utils';
-import {
-  transformOrganizerEventData,
-  type OrganizerEventData,
-  type GroupedOrganizerEvents,
-} from './helpers/organizer-utils';
-import {
-  transformOrganizerEventDetails,
-  type OrganizerEventDetailsData,
-  type OrganizerEventDetails,
-} from './helpers/organizer-event-details-utils';
 
 @Injectable()
 export class EventsService {
