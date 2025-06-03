@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -68,6 +69,14 @@ export class EventsController {
   @Get(':id')
   async getEventById(@Param('id', ParseIntPipe) id: number) {
     return this.eventsService.getEventById(id);
+  }
+
+  @Delete(':id')
+  async deleteEvent(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: User,
+  ) {
+    return this.eventsService.deleteEvent(id, user);
   }
 
   @Post('upload-image')

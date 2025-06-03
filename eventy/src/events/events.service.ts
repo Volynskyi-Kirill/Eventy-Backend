@@ -2,8 +2,10 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { User, TICKET_STATUS } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -412,6 +414,112 @@ export class EventsService {
       }
       console.error('Error fetching organizer event details:', error);
       throw new InternalServerErrorException('Failed to fetch event details');
+    }
+  }
+
+  async deleteEvent(eventId: number, user: User) {
+    try {
+      // Проверяем, существует ли событие и принадлежит ли оно пользователю
+      const event = await this.prismaService.event.findFirst({
+        where: {
+          id: eventId,
+          ownerId: user.id,
+        },
+        include: {
+          eventZones: {
+            include: {
+              tickets: true,
+            },
+          },
+        },
+      });
+
+      if (!event) {
+        throw new NotFoundException('Event not found or access denied');
+      }
+
+      // Проверяем, есть ли купленные билеты
+      const hasSoldTickets = event.eventZones.some((zone) =>
+        zone.tickets.some(
+          (ticket) => ticket.status !== TICKET_STATUS.AVAILABLE,
+        ),
+      );
+
+      if (hasSoldTickets) {
+        throw new BadRequestException(
+          'Cannot delete event with sold tickets. Event has purchased tickets.',
+        );
+      }
+
+      // Удаляем все связанные сущности в транзакции
+      await this.prismaService.$transaction(async (prisma) => {
+        // Удаляем билеты
+        await prisma.ticket.deleteMany({
+          where: {
+            eventZone: {
+              eventId: eventId,
+            },
+          },
+        });
+
+        // Удаляем зоны событий
+        await prisma.eventZone.deleteMany({
+          where: {
+            eventId: eventId,
+          },
+        });
+
+        // Удаляем даты событий
+        await prisma.eventDate.deleteMany({
+          where: {
+            eventId: eventId,
+          },
+        });
+
+        // Удаляем социальные медиа
+        await prisma.eventSocialMedia.deleteMany({
+          where: {
+            eventId: eventId,
+          },
+        });
+
+        // Удаляем само событие (categories связаны через many-to-many, поэтому автоматически отвяжутся)
+        await prisma.event.delete({
+          where: {
+            id: eventId,
+          },
+        });
+      });
+
+      await this.deleteEventImages(eventId, user);
+
+      return {
+        success: true,
+        message: 'Event successfully deleted',
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+      console.error('Error deleting event:', error);
+      throw new InternalServerErrorException('Failed to delete event');
+    }
+  }
+
+  private async deleteEventImages(eventId: number, user: User) {
+    try {
+      const userDir = getUserDir(user.id, user.userName);
+      const eventDir = getEventDir(userDir, eventId);
+  
+      if (fs.existsSync(eventDir)) {
+        fs.rmSync(eventDir, { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.error('Error deleting event images:', error);
     }
   }
 }
