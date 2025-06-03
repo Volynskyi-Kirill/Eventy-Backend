@@ -18,6 +18,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
 import { GetOrganizerEventsDto } from './dto/get-organizer-events.dto';
 import { GetOrganizerEventDetailsDto } from './dto/get-organizer-event-details.dto';
+import { GetOrganizerDashboardStatsDto } from './dto/get-organizer-dashboard-stats.dto';
 import { EventsService } from './events.service';
 
 @Controller('events')
@@ -32,6 +33,14 @@ export class EventsController {
     const event = await this.eventsService.createEvent(createEventDto, user);
 
     return event;
+  }
+
+  @Get('organizer/dashboard-stats')
+  async getOrganizerDashboardStats(
+    @Query() queryParams: GetOrganizerDashboardStatsDto,
+    @GetUser() user: User,
+  ) {
+    return this.eventsService.getOrganizerDashboardStats(queryParams, user);
   }
 
   @Get('organizer')

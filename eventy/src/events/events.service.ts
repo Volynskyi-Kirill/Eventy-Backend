@@ -14,6 +14,7 @@ import { TicketsService } from 'src/tickets/tickets.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAllEventsDto } from './dto/get-all-events.dto';
 import { GetOrganizerEventDetailsDto } from './dto/get-organizer-event-details.dto';
+import { GetOrganizerDashboardStatsDto } from './dto/get-organizer-dashboard-stats.dto';
 import {
   EventStatus,
   GetOrganizerEventsDto,
@@ -40,6 +41,11 @@ import {
   type GroupedOrganizerEvents,
   type OrganizerEventData,
 } from './helpers/organizer-utils';
+import {
+  calculateDashboardStats,
+  type DashboardEventData,
+  type DashboardStats,
+} from './helpers/dashboard-stats-utils';
 import {
   createTypedFilename,
   determineImageType,
@@ -417,6 +423,44 @@ export class EventsService {
     }
   }
 
+  async getOrganizerDashboardStats(
+    dto: GetOrganizerDashboardStatsDto,
+    user: User,
+  ): Promise<DashboardStats> {
+    try {
+      const events = await this.prismaService.event.findMany({
+        where: {
+          ownerId: user.id,
+        },
+        include: {
+          dates: true,
+          eventZones: {
+            include: {
+              tickets: {
+                include: {
+                  eventDate: true,
+                  soldTicket: true,
+                },
+              },
+            },
+          },
+          categories: true,
+          owner: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return calculateDashboardStats(events as DashboardEventData[]);
+    } catch (error) {
+      console.error('Error fetching organizer dashboard stats:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch dashboard statistics',
+      );
+    }
+  }
+
   async deleteEvent(eventId: number, user: User) {
     try {
       // Проверяем, существует ли событие и принадлежит ли оно пользователю
@@ -514,7 +558,7 @@ export class EventsService {
     try {
       const userDir = getUserDir(user.id, user.userName);
       const eventDir = getEventDir(userDir, eventId);
-  
+
       if (fs.existsSync(eventDir)) {
         fs.rmSync(eventDir, { recursive: true, force: true });
       }
