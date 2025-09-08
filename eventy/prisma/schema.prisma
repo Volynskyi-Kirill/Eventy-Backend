@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator dbml {
+  provider   = "prisma-dbml-generator"
+  output     = "./dbml"
+  outputName = "schema.dbml"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VISIBILITY {
+  PUBLIC
+  PRIVATE
+}
+
+enum TICKET_STATUS {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+model User {
+  id                 Int            @id @default(autoincrement())
+  userName           String         @map("user_name")
+  userSurname        String?        @map("user_surname")
+  phoneNumber        String?        @map("phone_number")
+  email              String         @unique
+  country            String?
+  state              String?
+  city               String?
+  pwdHash            String?        @map("pwd_hash")
+  avatarUrl          String?        @map("avatar_url")
+  provider           String?
+  providerId         String?        @map("provider_id")
+  marketingConsent   Boolean?       @map("marketing_consent")
+  createdEvents      Event[]        @relation("CreatedEvents")
+  speakingEvents     Event[]        @relation("SpeakingEvents")
+  locations          Location[]
+  soldTickets        SoldTicket[]
+  ownedSubscriptions Subscription[] @relation("OwnerRelation")
+  otherSubscriptions Subscription[] @relation("OtherRelation")
+
+  @@map("users")
+}
+
+model Subscription {
+  owner Int
+  other Int
+
+  userOwner User @relation("OwnerRelation", fields: [owner], references: [id])
+  userOther User @relation("OtherRelation", fields: [other], references: [id])
+
+  @@id([owner, other])
+  @@map("subscriptions")
+}
+
+//TODO add isFree bool
+
+model Event {
+  id               Int                @id @default(autoincrement())
+  owner            User               @relation("CreatedEvents", fields: [ownerId], references: [id])
+  ownerId          Int                @map("owner_id")
+  title            String
+  categories       Category[]
+  dates            EventDate[]
+  country          String?
+  state            String?
+  city             String?
+  street           String?
+  buildingNumber   String?            @map("building_number")
+  speakers         User[]             @relation("SpeakingEvents")
+  shortDescription String             @map("short_description")
+  fullDescription  String             @map("full_description")
+  eventZones       EventZone[]
+  socialMedia      EventSocialMedia[]
+  coverImg         String?            @map("cover_img")
+  logoImg          String?            @map("logo_img")
+  mainImg          String?            @map("main_img")
+  userId           Int? //зачем это поле? удалить? 
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime?          @updatedAt
+
+  @@map("events")
+}
+
+model Category {
+  id     Int     @id @default(autoincrement())
+  name   String
+  events Event[]
+
+  @@map("category")
+}
+
+model EventDate {
+  id      Int      @id @default(autoincrement())
+  date    DateTime
+  event   Event    @relation(fields: [eventId], references: [id])
+  eventId Int      @map("event_id")
+  tickets Ticket[]
+
+  @@map("event_dates")
+}
+
+model EventZone {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
+  name      String
+  price     Int
+  currency  String
+  seatCount Int
+  event     Event    @relation(fields: [eventId], references: [id])
+  tickets   Ticket[]
+
+  @@map("event_zones")
+}
+
+model EventSocialMedia {
+  id       Int    @id @default(autoincrement())
+  eventId  Int    @map("event_id")
+  platform String
+  link     String
+  event    Event  @relation(fields: [eventId], references: [id])
+
+  @@map("event_social_media")
+}
+
+model Location {
+  id         Int        @id @default(autoincrement())
+  holderId   Int        @map("holder_id")
+  picture    String?
+  coords     String?
+  layout     Bytes?
+  visibility VISIBILITY
+  holder     User       @relation(fields: [holderId], references: [id])
+
+  @@map("locations")
+}
+
+model Ticket {
+  id          Int           @id @default(autoincrement())
+  eventZoneId Int           @map("event_zone_id")
+  eventDateId Int           @map("event_date_id")
+  seatNumber  Int           @map("seat_number")
+  status      TICKET_STATUS @default(AVAILABLE)
+  eventZone   EventZone     @relation(fields: [eventZoneId], references: [id])
+  eventDate   EventDate     @relation(fields: [eventDateId], references: [id])
+  soldTicket  SoldTicket?
+
+  @@unique([eventZoneId, eventDateId, seatNumber])
+  @@map("tickets")
+}
+
+model SoldTicket {
+  ticketId            Int                  @unique @map("ticket_id")
+  buyerId             Int                  @map("buyer_id")
+  soldAt              DateTime             @default(now()) @map("sold_at")
+  paymentMethod       String               @map("payment_method")
+  purchaseContactId   Int?                 @map("purchase_contact_id")
+  ticket              Ticket               @relation(fields: [ticketId], references: [id])
+  buyer               User                 @relation(fields: [buyerId], references: [id])
+  purchaseContactInfo PurchaseContactInfo? @relation(fields: [purchaseContactId], references: [id])
+
+  @@id([ticketId, buyerId])
+  @@map("sold_tickets")
+}
+
+model PurchaseContactInfo {
+  id               Int          @id @default(autoincrement())
+  name             String
+  email            String
+  phone            String
+  agreeToTerms     Boolean      @map("agree_to_terms")
+  marketingConsent Boolean?     @map("marketing_consent")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  soldTickets      SoldTicket[]
+
+  @@map("purchase_contact_info")
+}
